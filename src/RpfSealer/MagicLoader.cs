@@ -59,7 +59,11 @@ namespace RpfSealer
         /// derives the encrypt tables and encrypt LUTs. The derivation step is the
         /// heavy compute: a few seconds to a couple of minutes on current CPUs.
         /// </summary>
-        public static void Load(byte[] magicBlob, byte[] aesKey, Action<string> progress = null)
+        /// <param name="progress">
+        /// Called as (current, total, detail). There are 17 total steps: 3 encrypt
+        /// table solves followed by 14 encrypt-LUT builds.
+        /// </param>
+        public static void Load(byte[] magicBlob, byte[] aesKey, Action<int, int, string> progress = null)
         {
             if (magicBlob == null) throw new ArgumentNullException(nameof(magicBlob));
             if (aesKey == null || aesKey.Length != 32)
@@ -186,7 +190,7 @@ namespace RpfSealer
             return h;
         }
 
-        private static void DeriveEncryptState(Action<string> progress)
+        private static void DeriveEncryptState(Action<int, int, string> progress)
         {
             var enc = new uint[17][][];
             var luts = new GTA5NGLUT[17][];
@@ -201,17 +205,20 @@ namespace RpfSealer
                 }
             }
 
-            progress?.Invoke("Solving encrypt table 1 of 17...");
+            const int TotalSteps = 17;
+            int step = 0;
+
+            progress?.Invoke(++step, TotalSteps, "solving encrypt table 1");
             enc[0]  = RandomGauss.Solve(GTA5Constants.PC_NG_DECRYPT_TABLES[0]);
-            progress?.Invoke("Solving encrypt table 2 of 17...");
+            progress?.Invoke(++step, TotalSteps, "solving encrypt table 2");
             enc[1]  = RandomGauss.Solve(GTA5Constants.PC_NG_DECRYPT_TABLES[1]);
-            progress?.Invoke("Solving encrypt table 17 of 17...");
+            progress?.Invoke(++step, TotalSteps, "solving encrypt table 17");
             enc[16] = RandomGauss.Solve(GTA5Constants.PC_NG_DECRYPT_TABLES[16]);
             GTA5Constants.PC_NG_ENCRYPT_TABLES = enc;
 
             for (int k = 2; k <= 15; k++)
             {
-                progress?.Invoke($"Building encrypt LUT {k + 1} of 17...");
+                progress?.Invoke(++step, TotalSteps, $"building encrypt LUT {k + 1}");
                 luts[k] = LookUpTableGenerator.BuildLUTs2(GTA5Constants.PC_NG_DECRYPT_TABLES[k]);
             }
             GTA5Constants.PC_NG_ENCRYPT_LUTs = luts;

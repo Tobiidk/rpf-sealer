@@ -61,8 +61,20 @@ namespace RpfSealer
 
         // ---- entry -------------------------------------------------------
 
+        [System.STAThread]
         private static int Main(string[] args)
         {
+            // Bare double-click (no args and no attached console): show the GUI
+            // launcher instead of the "press any key to exit" stub. The CLI
+            // remains the primary interface for every other invocation.
+            if (args.Length == 0 && !InvokedFromConsole())
+            {
+                System.Windows.Forms.Application.EnableVisualStyles();
+                System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
+                System.Windows.Forms.Application.Run(new Gui.MainForm());
+                return 0;
+            }
+
             int exitCode = 1;
             try
             {
@@ -172,7 +184,7 @@ namespace RpfSealer
 
         // ---- seal --------------------------------------------------------
 
-        private static int Seal(string path)
+        internal static int Seal(string path)
         {
             var missing = RequiredKeyFiles
                 .Where(f => !File.Exists(Path.Combine(BaseDir, f)))
@@ -263,7 +275,7 @@ namespace RpfSealer
                 : KeysMagic(exePath);
         }
 
-        private static int KeysMagic(string exePath)
+        internal static int KeysMagic(string exePath)
         {
             byte[] magic = MagicLoader.LoadBlob();
             if (magic == null)
@@ -289,7 +301,9 @@ namespace RpfSealer
             try
             {
                 Console.WriteLine("Unlocking magic blob and deriving encrypt tables (a few minutes on older CPUs)...");
-                MagicLoader.Load(magic, aesKey, m => Console.WriteLine($"  {m}"));
+                var bar = Progress.Create("Deriving");
+                MagicLoader.Load(magic, aesKey, (cur, total, detail) => bar.Report(cur, total, detail));
+                bar.Finish();
             }
             catch (Exception ex)
             {
@@ -376,7 +390,7 @@ namespace RpfSealer
             return candidates[sel];
         }
 
-        private static IEnumerable<Process> FindCandidateProcesses(string explicitName = null)
+        internal static IEnumerable<Process> FindCandidateProcesses(string explicitName = null)
         {
             var all = Process.GetProcesses();
 
@@ -419,7 +433,7 @@ namespace RpfSealer
             }
         }
 
-        private static string ResolveGameExe(Process target)
+        internal static string ResolveGameExe(Process target)
         {
             string path;
             try { path = target.MainModule.FileName; }
@@ -566,7 +580,9 @@ namespace RpfSealer
             Console.WriteLine($"AES key: {aesKey.Length} bytes");
             Console.WriteLine($"Magic:   {magic.Length} bytes");
             Console.WriteLine("Unwrapping magic blob...");
-            MagicLoader.Load(magic, aesKey, m => Console.WriteLine($"  {m}"));
+            var bar = Progress.Create("Deriving");
+            MagicLoader.Load(magic, aesKey, (cur, total, detail) => bar.Report(cur, total, detail));
+            bar.Finish();
 
             var expectedKeys = CryptoIO.ReadNgKeys(ngKeyPath);
             int keyMismatches = 0;
