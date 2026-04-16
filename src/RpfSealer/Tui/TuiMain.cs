@@ -46,7 +46,7 @@ namespace RpfSealer.Tui
                         {
                             "Seal an RPF archive",
                             "Derive keys from a running game",
-                            "Show CLI reference",
+                            "Advanced",
                             "About / attribution",
                             "Exit",
                         }));
@@ -55,7 +55,7 @@ namespace RpfSealer.Tui
                 {
                     case "Seal an RPF archive":             DoSeal(); break;
                     case "Derive keys from a running game": DoKeys(); break;
-                    case "Show CLI reference":              DoHelp(); break;
+                    case "Advanced":                        DoAdvanced(); break;
                     case "About / attribution":             DoAbout(); break;
                     case "Exit":                            return 0;
                 }
@@ -232,7 +232,232 @@ namespace RpfSealer.Tui
             PressAnyKey();
         }
 
-        private static void DoHelp()
+        // -----------------------------------------------------------------
+        // Advanced submenu — CLI-only operations surfaced for TUI users.
+        // -----------------------------------------------------------------
+        private static void DoAdvanced()
+        {
+            while (true)
+            {
+                AnsiConsole.Clear();
+                RenderHeader();
+                AnsiConsole.Write(new Rule("[red1]Advanced[/]").LeftJustified());
+                AnsiConsole.WriteLine();
+
+                var choice = AnsiConsole.Prompt(
+                    new SelectionPrompt<string>()
+                        .Title("Pick an operation:")
+                        .PageSize(8)
+                        .HighlightStyle(new Style(foreground: Color.Red1, decoration: Decoration.Bold))
+                        .AddChoices(new[]
+                        {
+                            "Diagnostics (keys, magic, paths)",
+                            "List candidate GTA V processes",
+                            "Run self-test (verify magic vs reference .dat)",
+                            "Derive keys via legacy pipeline (--legacy)",
+                            "View raw CLI reference",
+                            "Back to main menu",
+                        }));
+
+                if (choice.StartsWith("Diagnostics"))         DoDiagnostics();
+                else if (choice.StartsWith("List candidate")) DoProcessList();
+                else if (choice.StartsWith("Run self-test"))  DoSelfTestScreen();
+                else if (choice.StartsWith("Derive keys via")) DoKeysLegacyScreen();
+                else if (choice.StartsWith("View raw"))       DoCliReference();
+                else if (choice.StartsWith("Back"))           return;
+            }
+        }
+
+        private static void DoDiagnostics()
+        {
+            AnsiConsole.Clear();
+            RenderHeader();
+            AnsiConsole.Write(new Rule("[red1]Diagnostics[/]").LeftJustified());
+            AnsiConsole.WriteLine();
+
+            var asm = Assembly.GetExecutingAssembly();
+            var version = asm.GetName().Version?.ToString() ?? "?";
+
+            AnsiConsole.MarkupLine($"[grey]Version:[/]  {version}");
+            AnsiConsole.MarkupLine($"[grey]Base dir:[/] {BaseDir.EscapeMarkup()}");
+            AnsiConsole.WriteLine();
+
+            // Key files
+            var ktbl = new Table().Border(TableBorder.Rounded).BorderColor(Color.Grey);
+            ktbl.AddColumn("[bold]Key file[/]");
+            ktbl.AddColumn("[bold]Status[/]");
+            ktbl.AddColumn("[bold]Size[/]");
+            ktbl.AddColumn("[bold]Modified[/]");
+            foreach (var f in KeyFiles)
+            {
+                string p = Path.Combine(BaseDir, f);
+                if (File.Exists(p))
+                {
+                    var fi = new FileInfo(p);
+                    ktbl.AddRow(f, "[green]OK[/]", FormatBytes(fi.Length), fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm"));
+                }
+                else
+                {
+                    ktbl.AddRow(f, "[red]missing[/]", "-", "-");
+                }
+            }
+            AnsiConsole.Write(ktbl);
+            AnsiConsole.WriteLine();
+
+            // Magic blob
+            byte[] magic = MagicLoader.LoadBlob();
+            AnsiConsole.MarkupLine("[bold]Magic blob[/]");
+            if (magic == null)
+            {
+                AnsiConsole.MarkupLine("  [red]not found[/] (neither embedded nor on disk)");
+            }
+            else
+            {
+                string sha1;
+                using (var h = System.Security.Cryptography.SHA1.Create())
+                    sha1 = BitConverter.ToString(h.ComputeHash(magic)).Replace("-", "").ToLowerInvariant();
+                bool embedded;
+                using (var s = asm.GetManifestResourceStream("magic.dat")) embedded = s != null;
+                AnsiConsole.MarkupLine($"  [grey]source:[/] {(embedded ? "embedded resource" : "Resources/magic.dat on disk")}");
+                AnsiConsole.MarkupLine($"  [grey]size:[/]   {FormatBytes(magic.Length)}");
+                AnsiConsole.MarkupLine($"  [grey]sha-1:[/]  [dim]{sha1}[/]");
+            }
+            AnsiConsole.WriteLine();
+            PressAnyKey();
+        }
+
+        private static void DoProcessList()
+        {
+            AnsiConsole.Clear();
+            RenderHeader();
+            AnsiConsole.Write(new Rule("[red1]Candidate GTA V processes[/]").LeftJustified());
+            AnsiConsole.WriteLine();
+
+            var cands = Program.FindCandidateProcesses().ToList();
+            if (cands.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]None detected.[/] Start the game first if you want to derive keys.");
+                AnsiConsole.WriteLine();
+                PressAnyKey();
+                return;
+            }
+
+            var tbl = new Table().Border(TableBorder.Rounded).BorderColor(Color.Grey);
+            tbl.AddColumn("[bold]PID[/]");
+            tbl.AddColumn("[bold]Process[/]");
+            tbl.AddColumn("[bold]Window title[/]");
+            tbl.AddColumn("[bold]Exe path[/]");
+            foreach (var p in cands)
+            {
+                string title = "", path = "";
+                try { title = p.MainWindowTitle; } catch { }
+                try { path = p.MainModule.FileName; } catch { path = "[grey](needs admin)[/]"; }
+                tbl.AddRow(p.Id.ToString(), p.ProcessName, title.EscapeMarkup(), path.EscapeMarkup());
+            }
+            AnsiConsole.Write(tbl);
+            AnsiConsole.WriteLine();
+            PressAnyKey();
+        }
+
+        private static void DoSelfTestScreen()
+        {
+            AnsiConsole.Clear();
+            RenderHeader();
+            AnsiConsole.Write(new Rule("[red1]Self-test[/]").LeftJustified());
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.MarkupLine("Checks that the bundled magic blob unwraps to a known-good key set.");
+            AnsiConsole.MarkupLine("You need a directory containing [bold]gtav_aes_key.dat[/], [bold]gtav_ng_key.dat[/],");
+            AnsiConsole.MarkupLine("[bold]gtav_ng_decrypt_tables.dat[/], and [bold]gtav_hash_lut.dat[/] to compare against.");
+            AnsiConsole.WriteLine();
+
+            string dir = AnsiConsole.Prompt(
+                new TextPrompt<string>("Reference directory:")
+                    .DefaultValue(BaseDir)
+                    .PromptStyle("cyan")
+                    .Validate(d =>
+                    {
+                        d = d?.Trim().Trim('"');
+                        return Directory.Exists(d)
+                            ? ValidationResult.Success()
+                            : ValidationResult.Error($"not a directory: {d}");
+                    }));
+            dir = dir.Trim().Trim('"');
+
+            AnsiConsole.WriteLine();
+            int rc = Program.SelfTest(new[] { dir });
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine(rc == 0
+                ? "[green]Self-test passed.[/]"
+                : $"[red]Self-test failed[/] [grey](exit {rc})[/]");
+            PressAnyKey();
+        }
+
+        private static void DoKeysLegacyScreen()
+        {
+            AnsiConsole.Clear();
+            RenderHeader();
+            AnsiConsole.Write(new Rule("[red1]Derive keys — legacy pipeline[/]").LeftJustified());
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.MarkupLine("[yellow]The legacy pipeline scans process memory for 101 NG keys and then[/]");
+            AnsiConsole.MarkupLine("[yellow]scans the exe for 272 decrypt tables.[/] It is much slower than the");
+            AnsiConsole.MarkupLine("default path and [bold]hangs indefinitely on GTA V Enhanced builds[/]");
+            AnsiConsole.MarkupLine("because their table layout doesn't match the 2018-era hashes.");
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("Use this only as a diagnostic, or on pre-Enhanced Legacy GTA V.");
+            AnsiConsole.WriteLine();
+
+            if (!AnsiConsole.Confirm("Continue?", defaultValue: false))
+            {
+                AnsiConsole.MarkupLine("[grey]Cancelled.[/]");
+                PressAnyKey();
+                return;
+            }
+
+            var cands = Program.FindCandidateProcesses().ToList();
+            if (cands.Count == 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No GTA V-like process detected.[/]");
+                PressAnyKey();
+                return;
+            }
+
+            Process target = cands.Count == 1
+                ? cands[0]
+                : AnsiConsole.Prompt(
+                    new SelectionPrompt<Process>()
+                        .Title("Pick a process:")
+                        .UseConverter(p =>
+                        {
+                            string t = ""; try { t = p.MainWindowTitle; } catch { }
+                            return $"{p.ProcessName}  (PID {p.Id})  {t}";
+                        })
+                        .AddChoices(cands));
+
+            string exePath = Program.ResolveGameExe(target);
+            if (string.IsNullOrEmpty(exePath) || !File.Exists(exePath))
+            {
+                AnsiConsole.MarkupLine("[red]Could not resolve game executable.[/]");
+                PressAnyKey();
+                return;
+            }
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[grey]Target:[/] {target.ProcessName} [grey](PID {target.Id})[/]");
+            AnsiConsole.MarkupLine($"[grey]Exe:[/]    {exePath.EscapeMarkup()}");
+            AnsiConsole.MarkupLine("[grey]Running legacy pipeline (output below; Ctrl+C to abort):[/]");
+            AnsiConsole.WriteLine();
+
+            int rc = Program.KeysLegacy(target, exePath);
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine(rc == 0
+                ? "[green]Legacy derivation succeeded.[/]"
+                : $"[red]Legacy derivation failed[/] [grey](exit {rc})[/]");
+            PressAnyKey();
+        }
+
+        private static void DoCliReference()
         {
             AnsiConsole.Clear();
             RenderHeader();
@@ -255,6 +480,13 @@ namespace RpfSealer.Tui
             AnsiConsole.Write(tbl);
             AnsiConsole.WriteLine();
             PressAnyKey();
+        }
+
+        private static string FormatBytes(long n)
+        {
+            if (n < 1024) return $"{n} B";
+            if (n < 1024 * 1024) return $"{n / 1024.0:F1} KB";
+            return $"{n / 1024.0 / 1024.0:F1} MB";
         }
 
         private static void DoAbout()

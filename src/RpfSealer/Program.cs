@@ -325,7 +325,7 @@ namespace RpfSealer
             return 0;
         }
 
-        private static int KeysLegacy(Process target, string exePath)
+        internal static int KeysLegacy(Process target, string exePath)
         {
             string ngKeyPath = Path.Combine(BaseDir, "gtav_ng_key.dat");
             if (!File.Exists(ngKeyPath))
@@ -561,7 +561,7 @@ namespace RpfSealer
 
         // ---- self-test ---------------------------------------------------
 
-        private static int SelfTest(string[] args)
+        internal static int SelfTest(string[] args)
         {
             string dir = args.Length > 0 ? args[0] : BaseDir;
             string aesPath    = Path.Combine(dir, "gtav_aes_key.dat");
