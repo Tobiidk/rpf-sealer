@@ -9,7 +9,6 @@
     <RootNamespace>RpfSealer</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -25,6 +24,7 @@
   <ItemGroup>
     <PackageReference Include="Costura.Fody" Version="5.7.0" PrivateAssets="all" />
     <PackageReference Include="Fody" Version="6.9.1" PrivateAssets="all" />
+    <PackageReference Include="Spectre.Console" Version="0.55.0" />
   </ItemGroup>
 
   <ItemGroup>

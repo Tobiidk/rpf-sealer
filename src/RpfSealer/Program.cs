@@ -61,18 +61,20 @@ namespace RpfSealer
 
         // ---- entry -------------------------------------------------------
 
-        [System.STAThread]
         private static int Main(string[] args)
         {
-            // Bare double-click (no args and no attached console): show the GUI
-            // launcher instead of the "press any key to exit" stub. The CLI
-            // remains the primary interface for every other invocation.
-            if (args.Length == 0 && !InvokedFromConsole())
+            // No args: enter the TUI. Works both when launched from a terminal
+            // and when spawned by Windows for a double-click (the OutputType=Exe
+            // console is attached either way). The CLI is still primary for
+            // any invocation that passes a verb or path.
+            if (args.Length == 0)
             {
-                System.Windows.Forms.Application.EnableVisualStyles();
-                System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
-                System.Windows.Forms.Application.Run(new Gui.MainForm());
-                return 0;
+                try { return Tui.TuiMain.Run(); }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"TUI error: {ex.Message}");
+                    return 99;
+                }
             }
 
             int exitCode = 1;
@@ -116,6 +118,10 @@ namespace RpfSealer
                         exitCode = SelfTest(args.Skip(1).ToArray());
                         break;
 
+                    case "tui":
+                        exitCode = Tui.TuiMain.Run();
+                        break;
+
                     case "":
                     case "help":
                     case "--help":
@@ -154,7 +160,7 @@ namespace RpfSealer
         private static bool IsKnownVerb(string s)
         {
             string[] verbs = { "seal", "fix", "keys", "fetch", "processes", "list",
-                               "list-processes", "self-test", "help", "--help", "-h", "/?" };
+                               "list-processes", "self-test", "tui", "help", "--help", "-h", "/?" };
             return verbs.Any(v => string.Equals(v, s, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -176,6 +182,7 @@ namespace RpfSealer
             Console.WriteLine( "                                          Hangs on Enhanced builds; avoid.");
             Console.WriteLine($"  {ToolName} processes                    Show candidate GTA V processes.");
             Console.WriteLine($"  {ToolName} self-test [dir]              Verify magic unwrap vs reference .dat files.");
+            Console.WriteLine($"  {ToolName} tui                          Launch the interactive terminal UI.");
             Console.WriteLine($"  {ToolName} <file.rpf>                   Drag-and-drop an RPF here to seal it.");
             Console.WriteLine();
             Console.WriteLine("Key files (written by `keys`, loaded by `seal`):");
