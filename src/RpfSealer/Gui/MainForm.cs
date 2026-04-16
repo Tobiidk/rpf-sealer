@@ -32,6 +32,7 @@ namespace RpfSealer.Gui
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
+            Icon = LoadEmbeddedIcon();
 
             _sealBtn  = MakeButton("Seal an RPF...",   12,  12, 165, 40, OnSealClick);
             _keysBtn  = MakeButton("Derive Keys...",  187,  12, 165, 40, OnKeysClick);
@@ -202,6 +203,18 @@ namespace RpfSealer.Gui
             };
             b.Click += onClick;
             return b;
+        }
+
+        // Load the Win32 application icon already embedded via <ApplicationIcon>.
+        // Avoids duplicating the .ico inside the assembly as a managed resource.
+        private static Icon LoadEmbeddedIcon()
+        {
+            try
+            {
+                var exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
+                return Icon.ExtractAssociatedIcon(exePath);
+            }
+            catch { return null; }
         }
 
         private void SetBusy(bool busy, string statusText)
