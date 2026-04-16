@@ -51,14 +51,18 @@ namespace RpfSealer.Tui
                             "Exit",
                         }));
 
-                switch (choice)
+                try
                 {
-                    case "Seal an RPF archive":             DoSeal(); break;
-                    case "Derive keys from a running game": DoKeys(); break;
-                    case "Advanced":                        DoAdvanced(); break;
-                    case "About / attribution":             DoAbout(); break;
-                    case "Exit":                            return 0;
+                    switch (choice)
+                    {
+                        case "Seal an RPF archive":             DoSeal(); break;
+                        case "Derive keys from a running game": DoKeys(); break;
+                        case "Advanced":                        DoAdvanced(); break;
+                        case "About / attribution":             DoAbout(); break;
+                        case "Exit":                            return 0;
+                    }
                 }
+                catch (Exception ex) { ShowError(ex); }
             }
         }
 
@@ -259,12 +263,16 @@ namespace RpfSealer.Tui
                             "Back to main menu",
                         }));
 
-                if (choice.StartsWith("Diagnostics"))         DoDiagnostics();
-                else if (choice.StartsWith("List candidate")) DoProcessList();
-                else if (choice.StartsWith("Run self-test"))  DoSelfTestScreen();
-                else if (choice.StartsWith("Derive keys via")) DoKeysLegacyScreen();
-                else if (choice.StartsWith("View raw"))       DoCliReference();
-                else if (choice.StartsWith("Back"))           return;
+                try
+                {
+                    if (choice.StartsWith("Diagnostics"))         DoDiagnostics();
+                    else if (choice.StartsWith("List candidate")) DoProcessList();
+                    else if (choice.StartsWith("Run self-test"))  DoSelfTestScreen();
+                    else if (choice.StartsWith("Derive keys via")) DoKeysLegacyScreen();
+                    else if (choice.StartsWith("View raw"))       DoCliReference();
+                    else if (choice.StartsWith("Back"))           return;
+                }
+                catch (Exception ex) { ShowError(ex); }
             }
         }
 
@@ -468,17 +476,33 @@ namespace RpfSealer.Tui
             tbl.AddColumn(new TableColumn("[bold]Command[/]").NoWrap());
             tbl.AddColumn("[bold]Description[/]");
 
-            tbl.AddRow("RpfSealer seal <file.rpf>",         "Encrypt an unencrypted RPF with platform NG keys.");
-            tbl.AddRow("RpfSealer keys",                    "Derive keys from a running GTA V (magic-blob path).");
-            tbl.AddRow("RpfSealer keys --pid <id>",         "Target a specific PID.");
-            tbl.AddRow("RpfSealer keys --legacy",           "Original memory-scan path. Hangs on Enhanced.");
-            tbl.AddRow("RpfSealer processes",               "List candidate GTA V processes.");
-            tbl.AddRow("RpfSealer self-test [dir]",         "Verify magic unwrap against reference .dat files.");
-            tbl.AddRow("RpfSealer tui",                     "Launch this terminal UI explicitly.");
-            tbl.AddRow("RpfSealer <file.rpf>",              "Drag-drop or positional: shortcut for 'seal'.");
+            // Each cell is plain text (Text widget) so Spectre doesn't try to
+            // parse literal [dir], [id], <file.rpf> as markup.
+            void Row(string cmd, string desc) => tbl.AddRow(new Text(cmd), new Text(desc));
+            Row("RpfSealer seal <file.rpf>",         "Encrypt an unencrypted RPF with platform NG keys.");
+            Row("RpfSealer keys",                    "Derive keys from a running GTA V (magic-blob path).");
+            Row("RpfSealer keys --pid <id>",         "Target a specific PID.");
+            Row("RpfSealer keys --legacy",           "Original memory-scan path. Hangs on Enhanced.");
+            Row("RpfSealer processes",               "List candidate GTA V processes.");
+            Row("RpfSealer self-test [dir]",         "Verify magic unwrap against reference .dat files.");
+            Row("RpfSealer tui",                     "Launch this terminal UI explicitly.");
+            Row("RpfSealer <file.rpf>",              "Drag-drop or positional: shortcut for 'seal'.");
 
             AnsiConsole.Write(tbl);
             AnsiConsole.WriteLine();
+            PressAnyKey();
+        }
+
+        private static void ShowError(Exception ex)
+        {
+            AnsiConsole.WriteLine();
+            var panel = new Panel(
+                    $"[red]{ex.GetType().Name}[/]: {ex.Message.EscapeMarkup()}\n\n" +
+                    $"[grey]{(ex.StackTrace ?? "").EscapeMarkup()}[/]")
+                .Header("[red1]Error[/]", Justify.Left)
+                .Border(BoxBorder.Rounded)
+                .BorderStyle(new Style(Color.Red1));
+            AnsiConsole.Write(panel);
             PressAnyKey();
         }
 
