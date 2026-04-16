@@ -528,7 +528,11 @@ namespace RpfSealer.Tui
             AnsiConsole.MarkupLine("  • Spectre.Console  (Patrik Svensson, MIT)");
             AnsiConsole.MarkupLine("  • Costura.Fody + Fody  (MIT)");
             AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine("[grey]License[/]: MIT. See [bold]NOTICE.txt[/] next to the exe for the full chain.");
+            AnsiConsole.MarkupLine("[grey]Prior art[/]: [bold]Affix[/] (aka ArchiveFix) by [bold]crypter[/],");
+            AnsiConsole.MarkupLine("  released on GTAForums, October 17, 2016 — the tool this project");
+            AnsiConsole.MarkupLine("  modernises.");
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[grey]License[/]: MIT. Full attribution chain is in the project README.");
             AnsiConsole.MarkupLine("[grey]No Rockstar Games IP is bundled.[/]");
             AnsiConsole.WriteLine();
             PressAnyKey();

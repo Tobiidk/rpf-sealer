@@ -16,9 +16,6 @@
     <EmbeddedResource Include="Resources\magic.dat">
       <LogicalName>magic.dat</LogicalName>
     </EmbeddedResource>
-    <Content Include="..\..\NOTICE.txt" Link="NOTICE.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>

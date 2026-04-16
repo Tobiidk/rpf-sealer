@@ -10,7 +10,7 @@
 //   5. Split the plaintext into: NG keys | decrypt tables | PC LUT | AWC key.
 //
 // The magic.dat blob itself is distributed verbatim from CodeWalker's source
-// tree under the MIT License. See NOTICE.txt for full attribution.
+// tree under the MIT License. See README.md for full attribution.
 
 using System;
 using System.IO;

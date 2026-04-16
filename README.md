@@ -21,10 +21,13 @@ swaps, server builds, etc.) typically write unencrypted RPFs first, then need
 to toggle the NG encryption flag and re-seal the header before the game will
 accept them. That's the `seal` operation.
 
-The older community tool *ArchiveFix* did this on Legacy GTA V by scanning
-`GTA5.exe` in memory and on disk for the 272 NG decrypt tables by SHA-1. On
-GTA V Enhanced the exe layout changed enough that the hash-window scan hangs
-indefinitely looking for matches it can never find.
+The original community tool [*Affix* (aka ArchiveFix)][affix], released by
+GTAForums user **crypter** on October 17, 2016, did this on Legacy GTA V by
+scanning `GTA5.exe` in memory and on disk for the 272 NG decrypt tables by
+SHA-1. On GTA V Enhanced the exe layout changed enough that the hash-window
+scan hangs indefinitely looking for matches it can never find.
+
+[affix]: https://gtaforums.com/topic/871168-affix-fix-your-rpf-archives-and-work-without-openiv/
 
 RpfSealer replaces that pipeline with CodeWalker's [`UseMagicData`][magic]
 approach: a precomputed encrypted blob of all key material is bundled in the
@@ -104,15 +107,57 @@ dnSpyEx or ILSpy.
 
 ## Attribution
 
-See [NOTICE.txt](NOTICE.txt) for the full chain: RageLib (Neodymium, MIT),
-magic blob + algorithm (dexyfex / CodeWalker, MIT), HtmlAgilityPack (MIT),
-DirectXTex managed wrapper (MIT), Costura.Fody (MIT). Prior art: the 2016
-community tool *ArchiveFix* (author unknown) — no ArchiveFix content is
-redistributed.
+### Prior art
 
-This project does not redistribute any Rockstar Games IP. The magic blob
-holds only derived cryptographic constants; it is inert until unlocked by an
-AES key taken at runtime from the user's own installed GTA V copy.
+**Affix** (aka **ArchiveFix**) by GTAForums user **crypter**, released on
+[October 17, 2016][affix]. RpfSealer is a clean-room modernisation of
+that workflow for current GTA V builds; no Affix source or binary content
+is redistributed. Thanks to crypter for the original tool and to
+**Neodymium** for the research it stood on.
+
+### Third-party components
+
+All bundled components are MIT-licensed. RpfSealer itself is MIT (see
+[LICENSE](LICENSE)). The standard MIT permission text below applies to
+every component in this section.
+
+| Component | Author | Source | Role |
+|---|---|---|---|
+| **RageLib** / **RageLib.GTA5** | Neodymium | [Neodymium146/gta-toolkit](https://github.com/Neodymium146/gta-toolkit) | RPF archive format + crypto primitives. DLLs shipped in `libs/` are derivative works of upstream gta-toolkit with encrypt-path additions from the CodeWalker lineage (also MIT). See [BUILD.md](BUILD.md). |
+| **magic.dat** + `UseMagicData` algorithm | dexyfex / CodeWalker | [dexyfex/CodeWalker](https://github.com/dexyfex/CodeWalker) | Pre-baked encrypted key blob + AES-unwrap routine, replacing Affix's hash-window scan. Verbatim copy of `CodeWalker.Core/Resources/magic.dat` (SHA-1 `0768e698862cce8ad3ca1683e6388f76dff26758`). `src/RpfSealer/MagicLoader.cs` is a clean-room reimplementation of `CodeWalker.Core/GameFiles/Utils/GTAKeys.cs`'s `UseMagicData`. |
+| **Spectre.Console** | Patrik Svensson et al. | [spectreconsole/spectre.console](https://github.com/spectreconsole/spectre.console) | Terminal UI rendering. |
+| **HtmlAgilityPack** | ZZZ Projects | [zzzprojects/html-agility-pack](https://github.com/zzzprojects/html-agility-pack) | Transitively referenced by RageLib.GTA5. |
+| **DirectXTex** (managed wrapper) | via gta-toolkit `Libraries/` | [Microsoft/DirectXTex](https://github.com/Microsoft/DirectXTex) | Transitively referenced by RageLib texture helpers. |
+| **Costura.Fody** + **Fody** | Simon Cropp / Fody team | [Fody/Costura](https://github.com/Fody/Costura) | Build-time single-file packer. |
+
+### MIT License (applies to every third-party component above)
+
+```
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+```
+
+### Rockstar Games
+
+RpfSealer does not redistribute any Rockstar Games intellectual property.
+The magic blob contains only derived cryptographic constants; it is inert
+until unlocked by an AES key taken at runtime from the user's own installed
+copy of GTA V.
 
 ## License
 

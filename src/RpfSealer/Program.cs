@@ -8,7 +8,7 @@
 //                       six .dat files the RageLib runtime expects.
 //
 // Works with Legacy GTA V, GTA V Enhanced, and FiveM-family launchers.
-// See README.md for the why, NOTICE.txt for attribution.
+// See README.md for the why and for attribution.
 
 using System;
 using System.Collections.Generic;

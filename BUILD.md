@@ -19,8 +19,8 @@ self-contained (~850 KB), no loose DLLs required at runtime.
 
 The `libs/ragelib.dll` and `libs/ragelib.gta5.dll` shipped in this repo are
 a superset of Neodymium146/gta-toolkit: pure-upstream classes plus a set
-of encrypt-path additions that live in a downstream MIT fork (see
-[NOTICE.txt](NOTICE.txt) section 1).
+of encrypt-path additions that live in a downstream MIT fork (see the
+Attribution section of [README.md](README.md)).
 
 `.upstream/build/` contains SDK-style wrappers that build **only** the
 pure-upstream portion. Reproducing a decrypt-only build is useful for
