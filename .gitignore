@@ -1,0 +1,35 @@
+# Build outputs
+bin/
+obj/
+*.pdb
+*.user
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# .NET
+project.lock.json
+*.nuget.props
+*.nuget.targets
+packages/
+TestResults/
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Keys derived by `keys` — never commit, specific to the user's game install
+gtav_*.dat
+
+# Upstream source tree (clone via BUILD.md instructions; not redistributed)
+.upstream/gta-toolkit/
+
+# Build artifacts from upstream rebuild helper projects
+.upstream/build/*/bin/
+.upstream/build/*/obj/
+
+# NuGet restore artifacts
+**/packages.lock.json

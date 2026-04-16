@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>RpfSealer</AssemblyName>
+    <RootNamespace>RpfSealer</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\magic.dat">
+      <LogicalName>magic.dat</LogicalName>
+    </EmbeddedResource>
+    <Content Include="..\..\NOTICE.txt" Link="NOTICE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Costura.Fody" Version="5.7.0" PrivateAssets="all" />
+    <PackageReference Include="Fody" Version="6.9.1" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="RageLib">
+      <HintPath>..\..\libs\ragelib.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="RageLib.GTA5">
+      <HintPath>..\..\libs\ragelib.gta5.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="HtmlAgilityPack">
+      <HintPath>..\..\libs\htmlagilitypack.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="DirectXTex">
+      <HintPath>..\..\libs\directxtex.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

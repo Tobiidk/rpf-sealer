@@ -1,0 +1,112 @@
+RpfSealer — third-party attribution
+====================================
+
+RpfSealer is released under the MIT License (see LICENSE). It bundles and
+builds upon the following third-party components, each under the MIT License.
+
+1. RageLib and RageLib.GTA5
+---------------------------
+  Source:   https://github.com/Neodymium146/gta-toolkit
+  Author:   Neodymium (Neodymium146)
+  License:  MIT
+
+  The libs/ragelib.dll and libs/ragelib.gta5.dll binaries shipped with this
+  tool are derivative works of Neodymium's MIT-licensed gta-toolkit. They
+  include encrypt-path code (RandomGauss, LookUpTableGenerator, GTA5NGLUT,
+  the NG encrypt methods on GTA5Crypto, and a non-downgrading RageArchive7
+  WriteHeader) that upstream gta-toolkit does not contain; that code
+  originates in a downstream fork of gta-toolkit (the same lineage used by
+  CodeWalker). Because both upstream gta-toolkit and the downstream fork
+  are MIT-licensed, the redistribution terms here are MIT.
+
+  For cold-build reproducibility: .upstream/build/ contains SDK-style
+  project wrappers that build pure upstream gta-toolkit from source. Those
+  outputs are decrypt-only and therefore not suitable for the `seal`
+  operation this tool performs; they are provided for provenance audit of
+  the upstream portions. See BUILD.md for how the shipped binaries are
+  reproduced from source (including the encrypt-path sources).
+
+  Copyright (c) 2015 Neodymium
+  Copyright (c) downstream fork contributors (via MIT grant)
+
+2. magic.dat and the UseMagicData algorithm
+-------------------------------------------
+  Source:   https://github.com/dexyfex/CodeWalker
+  Author:   dexyfex
+  License:  MIT
+
+  src/RpfSealer/Resources/magic.dat is a verbatim copy of
+  CodeWalker.Core/Resources/magic.dat from the CodeWalker repository
+  (SHA-1 0768e698862cce8ad3ca1683e6388f76dff26758).
+
+  src/RpfSealer/MagicLoader.cs is a clean-room reimplementation of the
+  UseMagicData algorithm in
+  CodeWalker.Core/GameFiles/Utils/GTAKeys.cs.
+
+  Copyright (c) 2015 Neodymium
+  Copyright (c) 2017 dexyfex
+
+3. HtmlAgilityPack
+------------------
+  Source:   https://github.com/zzzprojects/html-agility-pack
+  License:  MIT
+
+  Shipped as libs/htmlagilitypack.dll. Transitively referenced by
+  RageLib.GTA5 for certain XML/HTML helper paths. Not directly used by
+  RpfSealer.
+
+4. DirectXTex (managed wrapper)
+-------------------------------
+  Source:   https://github.com/Microsoft/DirectXTex / gta-toolkit Libraries
+  License:  MIT
+
+  Shipped as libs/directxtex.dll. Transitively referenced by RageLib
+  (TextureCompression helpers). Not directly used by RpfSealer.
+
+5. Costura.Fody and Fody
+------------------------
+  Source:   https://github.com/Fody/Costura
+  License:  MIT
+
+  Build-time only. Produces a single-file RpfSealer.exe by embedding the
+  RageLib family + HtmlAgilityPack + DirectXTex as compressed resources.
+
+
+Standard MIT text (applies to items 1-5 above):
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  DEALINGS IN THE SOFTWARE.
+
+
+Prior-art acknowledgement
+-------------------------
+RpfSealer was prompted by the 2016-era community tool "ArchiveFix" (author
+unknown), which popularised the drag-and-drop workflow for NG-sealing GTA V
+RPF archives. No ArchiveFix source or binary content is redistributed here.
+RpfSealer is an independent implementation of equivalent functionality,
+modernised for GTA V Enhanced and other current builds, with the
+key-derivation path replaced entirely by CodeWalker's magic-blob approach
+(which supersedes the hash-window-scan pipeline ArchiveFix used).
+
+Non-redistribution of Rockstar Games IP
+---------------------------------------
+This project does not redistribute any Rockstar Games intellectual property.
+The magic blob contains only derived cryptographic constants (permutation
+tables and key schedules) that are themselves only unlocked by an AES key
+extracted at runtime from the user's own installed copy of GTA V. No game
+code, assets, or materials are bundled or replayed.

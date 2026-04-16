@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Builds RageLib.GTA5.dll from Neodymium146/gta-toolkit sources.
+    See RageLib.csproj in sibling folder for the rationale.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>RageLib.GTA5</AssemblyName>
+    <RootNamespace>RageLib.GTA5</RootNamespace>
+    <OutputType>Library</OutputType>
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <NoWarn>$(NoWarn);CS0618;CS0108;CS0169;CS0414;CS0219;CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\gta-toolkit\RageLib.GTA5\**\*.cs" Exclude="..\..\gta-toolkit\RageLib.GTA5\Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RageLib\RageLib.csproj" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.4.9.5" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Builds RageLib.dll from Neodymium146/gta-toolkit sources.
+    SDK-style wrapper so we can use `dotnet build`; the original csproj
+    is old-style MSBuild 2003 which the new SDK doesn't handle cleanly.
+    Points at the cloned upstream tree; does not modify it.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>RageLib</AssemblyName>
+    <RootNamespace>RageLib</RootNamespace>
+    <OutputType>Library</OutputType>
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <NoWarn>$(NoWarn);CS0618;CS0108;CS0169;CS0414;CS0219;CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\gta-toolkit\RageLib\**\*.cs" Exclude="..\..\gta-toolkit\RageLib\Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="DirectXTex">
+      <HintPath>..\..\..\libs\directxtex.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
