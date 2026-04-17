@@ -25,6 +25,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- net48 ships System.Windows.Forms in-runtime; used only for
+         OpenFileDialog in the TUI. Private=false so Costura doesn't try
+         to bundle the runtime assembly. -->
+    <Reference Include="System.Windows.Forms">
+      <Private>false</Private>
+    </Reference>
     <Reference Include="RageLib">
       <HintPath>..\..\libs\ragelib.dll</HintPath>
       <Private>true</Private>

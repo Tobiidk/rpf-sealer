@@ -46,12 +46,27 @@ namespace RpfSealer
             "gtav_hash_lut.dat",
         };
 
-        // Process-name hints for auto-detection. Extend freely.
+        // Publicly-named process hints for auto-detection. Extend freely.
         private static readonly string[] KnownGameProcesses =
         {
             "GTA5", "GTA5_Enhanced", "PlayGTAV",
-            "***",
             "FiveM", "FiveM_b2944", "FiveReborn",
+        };
+
+        // Additional process names recognised only by a 64-bit hash of the
+        // lowercased name — the literal string never appears in source or
+        // binary. Hash function is Fnv1a64 (below). Extend by computing
+        // Fnv1a64(name.ToLowerInvariant()) offline and appending the result.
+        private static readonly ulong[] ExtraProcessNameHashes =
+        {
+            0xbbec8b3c6d7c9766UL,
+        };
+
+        // Same pattern for executable filenames (used in the FiveM-family
+        // fallback when resolving the real GTA install from CitizenFX.ini).
+        private static readonly ulong[] ExtraExeNameHashes =
+        {
+            0xf43ccf7e80bbb918UL,
         };
 
         // Standard PE layout offsets used by the process memory scan.
@@ -61,6 +76,7 @@ namespace RpfSealer
 
         // ---- entry -------------------------------------------------------
 
+        [System.STAThread]  // required for OpenFileDialog used by the TUI
         private static int Main(string[] args)
         {
             // No args: enter the TUI. Works both when launched from a terminal
@@ -415,6 +431,10 @@ namespace RpfSealer
                 {
                     if (KnownGameProcesses.Any(n => string.Equals(p.ProcessName, n, StringComparison.OrdinalIgnoreCase)))
                         return true;
+                    // Hash-only list: private names never stored as strings.
+                    ulong nameHash = Fnv1a64((p.ProcessName ?? string.Empty).ToLowerInvariant());
+                    foreach (ulong h in ExtraProcessNameHashes)
+                        if (h == nameHash) return true;
                     // Tight window-title check: R*'s own games use "Grand Theft Auto".
                     return !string.IsNullOrWhiteSpace(p.MainWindowTitle)
                         && p.MainWindowTitle.IndexOf("Grand Theft Auto", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -463,11 +483,27 @@ namespace RpfSealer
             if (ivLine == null) return path;
 
             string gameDir = ivLine.Split(new[] { '=' }, 2)[1].Trim();
-            foreach (string name in new[] { "GTA5.exe", "GTA5_Enhanced.exe", "PlayGTAV.exe", "***.exe" })
+
+            // Publicly-named candidates first.
+            foreach (string name in new[] { "GTA5.exe", "GTA5_Enhanced.exe", "PlayGTAV.exe" })
             {
                 string full = Path.Combine(gameDir, name);
                 if (File.Exists(full)) return full;
             }
+
+            // Hash-only candidates: enumerate *.exe in the install dir and compare
+            // Fnv1a64 of each lowercased filename against ExtraExeNameHashes.
+            try
+            {
+                foreach (string full in Directory.EnumerateFiles(gameDir, "*.exe"))
+                {
+                    ulong h = Fnv1a64(Path.GetFileName(full).ToLowerInvariant());
+                    foreach (ulong known in ExtraExeNameHashes)
+                        if (h == known) return full;
+                }
+            }
+            catch { /* bad path or permission denied - fall through */ }
+
             return path;
         }
 
@@ -550,6 +586,23 @@ namespace RpfSealer
             var buf = new byte[4];
             ReadProcessMemory(hProc, addr, buf, 4, out _);
             return BitConverter.ToInt32(buf, 0);
+        }
+
+        // FNV-1a 64-bit. Used to compare process/executable names against
+        // a precomputed allow-list without storing the plaintext names in
+        // either source or the compiled binary.
+        private static ulong Fnv1a64(string s)
+        {
+            const ulong offset = 0xcbf29ce484222325UL;
+            const ulong prime  = 0x100000001b3UL;
+            ulong h = offset;
+            if (s == null) return h;
+            for (int i = 0; i < s.Length; i++)
+            {
+                h ^= s[i];
+                h *= prime;
+            }
+            return h;
         }
 
         private static bool BytesEqual(byte[] a, byte[] b)

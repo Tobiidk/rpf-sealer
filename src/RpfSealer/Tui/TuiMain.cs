@@ -87,19 +87,45 @@ namespace RpfSealer.Tui
                 return;
             }
 
-            string path = AnsiConsole.Prompt(
-                new TextPrompt<string>("Path to unencrypted [bold].rpf[/] (or drag onto this window):")
-                    .PromptStyle("cyan")
-                    .Validate(p =>
-                    {
-                        if (string.IsNullOrWhiteSpace(p)) return ValidationResult.Error("empty");
-                        p = p.Trim().Trim('"');
-                        return File.Exists(p)
-                            ? ValidationResult.Success()
-                            : ValidationResult.Error($"not a file: {p}");
-                    }));
+            AnsiConsole.MarkupLine("[grey]Tip:[/] you can also drag a .rpf directly onto [bold]RpfSealer.exe[/] to seal it without opening this menu.");
+            AnsiConsole.WriteLine();
 
-            path = path.Trim().Trim('"');
+            var method = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("How do you want to pick the file?")
+                    .HighlightStyle(new Style(foreground: Color.Red1, decoration: Decoration.Bold))
+                    .AddChoices(new[] { "Browse (file picker)", "Type or paste a path", "Cancel" }));
+
+            string path;
+            if (method.StartsWith("Browse"))
+            {
+                path = BrowseForRpf();
+                if (string.IsNullOrEmpty(path))
+                {
+                    AnsiConsole.MarkupLine("[grey]Cancelled.[/]");
+                    PressAnyKey();
+                    return;
+                }
+            }
+            else if (method.StartsWith("Type"))
+            {
+                path = AnsiConsole.Prompt(
+                    new TextPrompt<string>("Path to unencrypted [bold].rpf[/]:")
+                        .PromptStyle("cyan")
+                        .Validate(p =>
+                        {
+                            if (string.IsNullOrWhiteSpace(p)) return ValidationResult.Error("empty");
+                            p = p.Trim().Trim('"');
+                            return File.Exists(p)
+                                ? ValidationResult.Success()
+                                : ValidationResult.Error($"not a file: {p}");
+                        }));
+                path = path.Trim().Trim('"');
+            }
+            else
+            {
+                return;
+            }
 
             int rc = 0;
             AnsiConsole.Status()
@@ -504,6 +530,24 @@ namespace RpfSealer.Tui
                 .BorderStyle(new Style(Color.Red1));
             AnsiConsole.Write(panel);
             PressAnyKey();
+        }
+
+        // Opens a native Windows file-open dialog for picking an .rpf.
+        // Returns the chosen path, or null if cancelled.
+        private static string BrowseForRpf()
+        {
+            using (var dlg = new System.Windows.Forms.OpenFileDialog
+            {
+                Filter = "RPF archives (*.rpf)|*.rpf|All files (*.*)|*.*",
+                Title = "Select an unencrypted RPF to seal",
+                CheckFileExists = true,
+                CheckPathExists = true,
+                Multiselect = false,
+            })
+            {
+                var res = dlg.ShowDialog();
+                return res == System.Windows.Forms.DialogResult.OK ? dlg.FileName : null;
+            }
         }
 
         private static string FormatBytes(long n)
