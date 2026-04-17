@@ -45,6 +45,7 @@ namespace RpfSealer.Tui
                         .AddChoices(new[]
                         {
                             "Seal an RPF archive",
+                            "Unseal an RPF archive",
                             "Derive keys from a running game",
                             "Advanced",
                             "About / attribution",
@@ -55,10 +56,11 @@ namespace RpfSealer.Tui
                 {
                     switch (choice)
                     {
-                        case "Seal an RPF archive":             DoSeal(); break;
-                        case "Derive keys from a running game": DoKeys(); break;
+                        case "Seal an RPF archive":             DoSeal();   break;
+                        case "Unseal an RPF archive":           DoUnseal(); break;
+                        case "Derive keys from a running game": DoKeys();   break;
                         case "Advanced":                        DoAdvanced(); break;
-                        case "About / attribution":             DoAbout(); break;
+                        case "About / attribution":             DoAbout();  break;
                         case "Exit":                            return 0;
                     }
                 }
@@ -138,6 +140,66 @@ namespace RpfSealer.Tui
                 AnsiConsole.MarkupLine("[green]OK — archive is NG-sealed.[/]");
             else
                 AnsiConsole.MarkupLine($"[red]Seal failed[/] [grey](exit {rc})[/]");
+            PressAnyKey();
+        }
+
+        private static void DoUnseal()
+        {
+            AnsiConsole.Clear();
+            RenderHeader();
+            AnsiConsole.Write(new Rule("[red1]Unseal an RPF[/]").LeftJustified());
+            AnsiConsole.WriteLine();
+
+            var missing = KeyFiles.Where(f => !File.Exists(Path.Combine(BaseDir, f))).ToList();
+            if (missing.Count > 0)
+            {
+                AnsiConsole.MarkupLine("[yellow]No keys on disk yet.[/] Run [bold]Derive keys[/] first.");
+                foreach (var m in missing) AnsiConsole.MarkupLine($"  [grey]{m.EscapeMarkup()}[/]");
+                PressAnyKey();
+                return;
+            }
+
+            AnsiConsole.MarkupLine("[grey]Unseal decrypts a sealed RPF back to its plain form — useful for editing.[/]");
+            AnsiConsole.WriteLine();
+
+            var method = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("How do you want to pick the file?")
+                    .HighlightStyle(new Style(foreground: Color.Red1, decoration: Decoration.Bold))
+                    .AddChoices(new[] { "Browse (file picker)", "Type or paste a path", "Cancel" }));
+
+            string path;
+            if (method.StartsWith("Browse"))
+            {
+                path = BrowseForRpf();
+                if (string.IsNullOrEmpty(path)) { AnsiConsole.MarkupLine("[grey]Cancelled.[/]"); PressAnyKey(); return; }
+            }
+            else if (method.StartsWith("Type"))
+            {
+                path = AnsiConsole.Prompt(
+                    new TextPrompt<string>("Path to sealed [bold].rpf[/]:")
+                        .PromptStyle("cyan")
+                        .Validate(p =>
+                        {
+                            if (string.IsNullOrWhiteSpace(p)) return ValidationResult.Error("empty");
+                            p = p.Trim().Trim('"');
+                            return File.Exists(p) ? ValidationResult.Success() : ValidationResult.Error($"not a file: {p}");
+                        }));
+                path = path.Trim().Trim('"');
+            }
+            else return;
+
+            int rc = 0;
+            AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(new Style(foreground: Color.Red1))
+                .Start($"Unsealing {Path.GetFileName(path)}...", _ => { rc = Program.Unseal(path); });
+
+            AnsiConsole.WriteLine();
+            if (rc == 0)
+                AnsiConsole.MarkupLine("[green]OK — archive is now unencrypted.[/]");
+            else
+                AnsiConsole.MarkupLine($"[red]Unseal failed[/] [grey](exit {rc})[/]");
             PressAnyKey();
         }
 
@@ -506,6 +568,7 @@ namespace RpfSealer.Tui
             // parse literal [dir], [id], <file.rpf> as markup.
             void Row(string cmd, string desc) => tbl.AddRow(new Text(cmd), new Text(desc));
             Row("RpfSealer seal <file.rpf>",         "Encrypt an unencrypted RPF with platform NG keys.");
+            Row("RpfSealer unseal <file.rpf>",       "Decrypt a sealed RPF back to plain form.");
             Row("RpfSealer keys",                    "Derive keys from a running GTA V (magic-blob path).");
             Row("RpfSealer keys --pid <id>",         "Target a specific PID.");
             Row("RpfSealer keys --legacy",           "Original memory-scan path. Hangs on Enhanced.");

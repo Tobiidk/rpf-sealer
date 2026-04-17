@@ -118,6 +118,15 @@ namespace RpfSealer
                         else exitCode = Seal(args[1]);
                         break;
 
+                    case "unseal":
+                        if (args.Length < 2)
+                        {
+                            Console.Error.WriteLine($"Usage: {ToolName} unseal <path-to-rpf>");
+                            exitCode = 2;
+                        }
+                        else exitCode = Unseal(args[1]);
+                        break;
+
                     case "keys":
                     case "fetch": // alias for ArchiveFix migrants
                         exitCode = Keys(args.Skip(1).ToArray());
@@ -175,7 +184,7 @@ namespace RpfSealer
 
         private static bool IsKnownVerb(string s)
         {
-            string[] verbs = { "seal", "fix", "keys", "fetch", "processes", "list",
+            string[] verbs = { "seal", "unseal", "fix", "keys", "fetch", "processes", "list",
                                "list-processes", "self-test", "tui", "help", "--help", "-h", "/?" };
             return verbs.Any(v => string.Equals(v, s, StringComparison.OrdinalIgnoreCase));
         }
@@ -189,6 +198,7 @@ namespace RpfSealer
             Console.WriteLine();
             Console.WriteLine("Usage:");
             Console.WriteLine($"  {ToolName} seal <file.rpf>              Encrypt an RPF with platform NG keys.");
+            Console.WriteLine($"  {ToolName} unseal <file.rpf>            Decrypt an NG/AES RPF back to plain form.");
             Console.WriteLine($"  {ToolName} keys [--process <name>]      Derive keys from a running GTA V.");
             Console.WriteLine( "                                          Default: scans exe for AES key,");
             Console.WriteLine( "                                          unlocks bundled magic blob. Works");
@@ -257,6 +267,61 @@ namespace RpfSealer
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Failed to seal archive: {ex.Message}");
+                return 6;
+            }
+        }
+
+        // ---- unseal (inverse of seal) ------------------------------------
+
+        internal static int Unseal(string path)
+        {
+            var missing = RequiredKeyFiles
+                .Where(f => !File.Exists(Path.Combine(BaseDir, f)))
+                .ToList();
+            if (missing.Count > 0)
+            {
+                Console.Error.WriteLine("Missing key files:");
+                foreach (var m in missing) Console.Error.WriteLine($"  {m}");
+                Console.Error.WriteLine($"Run '{ToolName} keys' first, or copy the .dat files next to this executable.");
+                return 3;
+            }
+
+            try { GTA5Constants.LoadFromPath(BaseDir); }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Failed to load keys: {ex.Message}");
+                return 3;
+            }
+
+            if (!File.Exists(path))
+            {
+                Console.Error.WriteLine($"File not found: {path}");
+                return 4;
+            }
+
+            try
+            {
+                using (var wrapper = RageArchiveWrapper7.Open(path))
+                {
+                    if ((int)wrapper.archive_.Encryption == 0)
+                    {
+                        Console.Error.WriteLine("This packfile is already unencrypted - nothing to do.");
+                        return 5;
+                    }
+                    wrapper.archive_.Encryption = (RageArchiveEncryption7)0; // None
+                    wrapper.Flush();
+                }
+                Console.WriteLine($"OK: {path} is now unencrypted.");
+                return 0;
+            }
+            catch (FileNotFoundException ex)
+            {
+                Console.Error.WriteLine($"File not found: {ex.FileName}");
+                return 4;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Failed to unseal archive: {ex.Message}");
                 return 6;
             }
         }
